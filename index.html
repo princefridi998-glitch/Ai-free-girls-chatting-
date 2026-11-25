@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat & Voice Companion</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #e5ddd5; display: flex; justify-content: center; height: 100vh; }
+        .app-container { width: 100%; max-width: 450px; background: #fff; display: flex; flex-direction: column; height: 100%; border-left: 1px solid #ccc; border-right: 1px solid #ccc; }
+
+        .header { background: #075e54; color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+
+        /* Login Screen */
+        #loginScreen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; gap: 15px; background: #efeae2; }
+        .google-btn { background: #fff; color: #333; border: 1px solid #ccc; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .google-btn:hover { background: #f9f9f9; }
+
+        /* Profile List */
+        #profileList { flex: 1; overflow-y: auto; display: none; }
+        .profile-card { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .profile-card:hover { background: #f5f5f5; }
+        .profile-img { width: 52px; height: 52px; border-radius: 50%; margin-right: 12px; object-fit: cover; background: #ddd; }
+        .profile-name { font-weight: bold; font-size: 16px; color: #222; }
+        .profile-sub { font-size: 12px; color: #128c7e; margin-top: 2px; }
+
+        /* Chat Screen */
+        #chatScreen { display: none; flex-direction: column; flex: 1; height: 100%; }
+        .chat-header { background: #075e54; color: white; padding: 12px 15px; display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .chat-body { flex: 1; background: #efeae2; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 78%; padding: 10px 13px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+        .user-msg { background: #dcf8c6; align-self: flex-end; }
+        .ai-msg { background: #ffffff; align-self: flex-start; box-shadow: 0 1px 1px rgba(0,0,0,0.08); }
+
+        .chat-footer { padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; }
+        .chat-footer input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+        .icon-btn { background: #128c7e; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+        .icon-btn.listening { background: #d93025; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <span id="headerTitle">AI Chat Club</span>
+        <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logoutUser()">Logout</button>
+    </div>
+
+    <!-- Step 1: Google Login Screen -->
+    <div id="loginScreen">
+        <h2>خوش آمدید!</h2>
+        <p style="font-size: 14px; color: #555;">چیٹ اور وائس ریپلائی شروع کرنے کے لیے اپنے گوگل اکاؤنٹ سے سائن ان کریں۔</p>
+        <button class="google-btn" onclick="loginWithGoogle()">G Continue with Google</button>
+    </div>
+
+    <!-- Step 2: Profiles List -->
+    <div id="profileList">
+        <!-- Profiles will be dynamically loaded here -->
+    </div>
+
+    <!-- Step 3: Chat Screen -->
+    <div id="chatScreen">
+        <div class="chat-header">
+            <button class="back-btn" onclick="backToProfiles()">←</button>
+            <span id="chatGirlName">Chat</span>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="chat-footer">
+            <input type="text" id="msgInput" placeholder="میسج لکھیں یا مائیک دبائیں..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="icon-btn" onclick="sendMessage()">➤</button>
+            <button class="icon-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<script>
+    // ** ایڈمن کنٹرول پینل: آپ یہاں سے تصویریں اور نام تبدیل کر سکتے ہیں **
+    const girlsProfiles = [
+        {
+            name: "عائشہ (Ayesha)",
+            persona: "شوخ اور پیار کرنے والی لڑکی",
+            image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
+        },
+        {
+            name: "سارہ (Sara)",
+            persona: "نرم دل اور خیال رکھنے والی لڑکی",
+            image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+        },
+        {
+            name: "ماریہ (Maria)",
+            persona: "ہنس مکھ اور دوستانہ لڑکی",
+            image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150"
+        },
+        {
+            name: "فاطمہ (Fatima)",
+            persona: "معصوم اور محبت بھری باتیں کرنے والی لڑکی",
+            image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150"
+        }
+    ];
+
+    // 1. اپنی Firebase Config یہاں لگائیں
+    const firebaseConfig = {
+        apiKey: "AIzaSyDPXN2Mug6gpnWgXbODS_yC9n5P7B0Q9X0",
+    authDomain: "ai-free-girls-chatting.firebaseapp.com",
+    projectId: "ai-free-girls-chatting",
+    storageBucket: "ai-free-girls-chatting.firebasestorage.app",
+    messagingSenderId: "110536817891",
+    appId: "1:110536817891:web:a1ec618d119336446519d6",
+    measurementId: "G-V69GPYTF2G"
+    };
+
+    // 2. اپنی Gemini API Key یہاں لگائیں
+    const GEMINI_API_KEY = "AQ.Ab8RN6IfUfrQDREASpW1ELsKwnIDc0z1tuEM9S6VRx0VgyjtCQ";
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    let currentGirl = "";
+    let currentPersona = "";
+    let recognition = null;
+    let isRecording = false;
+
+    // Load Profiles on Startup
+    document.addEventListener("DOMContentLoaded", () => {
+        const profileListContainer = document.getElementById("profileList");
+        profileListContainer.innerHTML = '';
+        
+        girlsProfiles.forEach(girl => {
+            const card = document.createElement("div");
+            card.className = "profile-card";
+            card.onclick = () => openChat(girl.name, girl.persona);
+            card.innerHTML = `
+                <img src="${girl.image}" class="profile-img" onerror="this.src='https://via.placeholder.com/150'">
+                <div>
+                    <div class="profile-name">${girl.name}</div>
+                    <div class="profile-sub">WhatsApp Style Chat • Online</div>
+                </div>
+            `;
+            profileListContainer.appendChild(card);
+        });
+    });
+
+    // Auth State Listener
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "inline-block";
+            if (document.getElementById("chatScreen").style.display !== "flex") {
+                document.getElementById("profileList").style.display = "block";
+            }
+        } else {
+            document.getElementById("loginScreen").style.display = "flex";
+            document.getElementById("profileList").style.display = "none";
+            document.getElementById("chatScreen").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "none";
+            window.speechSynthesis.cancel();
+        }
+    });
+
+    function loginWithGoogle() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch((err) => {
+            alert("لاگ ان میں مسئلہ آیا: " + err.message);
+        });
+    }
+
+    function logoutUser() {
+        auth.signOut();
+    }
+
+    function openChat(name, persona) {
+        currentGirl = name;
+        currentPersona = persona;
+        document.getElementById("profileList").style.display = "none";
+        document.getElementById("chatScreen").style.display = "flex";
+        document.getElementById("chatGirlName").innerText = name;
+        document.getElementById("chatBody").innerHTML = "";
+
+        const greeting = `سلام جانو! میں ${name} ہوں۔ آپ کیسے ہو؟ ❤️`;
+        appendMessage(greeting, "ai");
+        speakReply(greeting);
+    }
+
+    function backToProfiles() {
+        window.speechSynthesis.cancel();
+        document.getElementById("chatScreen").style.display = "none";
+        document.getElementById("profileList").style.display = "block";
+    }
+
+    function appendMessage(text, sender) {
+        const chatBody = document.getElementById("chatBody");
+        const div = document.createElement("div");
+        div.className = `message ${sender === "user" ? "user-msg" : "ai-msg"}`;
+        div.innerText = text;
+        chatBody.appendChild(div);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById("msgInput");
+        const text = input.value.trim();
+        if (!text) return;
+
+        appendMessage(text, "user");
+        input.value = "";
+
+        const reply = await getAiReply(text);
+        appendMessage(reply, "ai");
+        speakReply(reply);
+    }
+
+    async function getAiReply(userMessage) {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const prompt = `تمہارا نام ${currentGirl} ہے اور تم ${currentPersona} ہو۔ صارف سے انتہائی پیار، اپنائیت اور رومینٹک انداز میں بات کرو۔ ہر جواب میں صارف کو لازمی "جانو" کہہ کر مخاطب کرنا ہے۔ جواب مختصر (1 یا 2 جملے) اور قدرتی ہونا چاہیے ۔ صارف کا پیغام: ${userMessage}`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+            const data = await response.json();
+            return data?.candidates?.[0]?.content?.parts?.[0]?.text || "جانو، میں سن رہی ہوں، دوبارہ بولو نا؟ ❤️";
+        } catch (e) {
+            return "جانو، میرا انٹرنیٹ تھوڑا سلو چل رہا ہے، دوبارہ کہو نا؟ ❤️";
+        }
+    }
+
+    function speakReply(text) {
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = "ur-PK";
+        utter.pitch = 1.25;
+        utter.rate = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const female = voices.find(v => /female|woman|zira|samantha|google/i.test(v.name));
+        if (female) utter.voice = female;
+
+        window.speechSynthesis.speak(utter);
+    }
+
+    // Pre-load voices
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+
+    // Voice Input
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+        recognition = new SpeechRec();
+        recognition.lang = "ur-PK";
+        recognition.interimResults = false;
+
+        recognition.onresult = (event) => {
+            const spokenText = event.results[0][0].transcript;
+            document.getElementById("msgInput").value = spokenText;
+            sendMessage();
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            document.getElementById("micBtn").classList.remove("listening");
+        };
+    }
+
+    function toggleMic() {
+        if (!recognition) {
+            alert("اس براؤزر میں مائیک سپورٹ نہیں ہے۔ Chrome استعمال کریں۔");
+            return;
+        }
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+            isRecording = true;
+            document.getElementById("micBtn").classList.add("listening");
+        }
+    }
+</script>
+
+</body>
+</html>
