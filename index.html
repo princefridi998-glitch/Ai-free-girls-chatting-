@@ -5,283 +5,263 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat & Voice Companion</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #e5ddd5; display: flex; justify-content: center; height: 100vh; }
-        .app-container { width: 100%; max-width: 450px; background: #fff; display: flex; flex-direction: column; height: 100%; border-left: 1px solid #ccc; border-right: 1px solid #ccc; }
+        .app-container { width: 100%; max-width: 500px; background: #fff; display: flex; flex-direction: column; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { background: #075e54; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: bold; }
+        .logout-btn { background: #ff4757; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; float: right; }
+        
+        #loginScreen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .google-btn { background: #ffffff; border: 1px solid #ccc; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 16px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        #profileList { flex: 1; overflow-y: auto; padding: 10px; }
+        .profile-card { background: #f9f9f9; border-bottom: 1px solid #eee; padding: 15px; display: flex; align-items: center; cursor: pointer; transition: background 0.3s; }
+        .profile-card:hover { background: #f1f1f1; }
+        .profile-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #075e54; }
+        .profile-info { flex: 1; }
+        .profile-name { font-weight: bold; font-size: 18px; color: #333; }
+        .profile-status { font-size: 14px; color: #666; margin-top: 3px; }
 
-        .header { background: #075e54; color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        #chatScreen { display: none; flex-direction: column; height: 100%; }
+        .chat-header { background: #075e54; color: white; padding: 10px; display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .chat-body { flex: 1; padding: 15px; overflow-y: auto; background: #e5ddd5; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 80%; padding: 10px 15px; border-radius: 10px; font-size: 16px; position: relative; line-height: 1.4; }
+        .user-msg { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .ai-msg { background: #ffffff; align-self: flex-start; border-bottom-left-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .profile-big-container { text-align: center; padding: 15px; background: #f0f2f5; border-bottom: 1px solid #ccc; }
+        .profile-big-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #075e54; margin-bottom: 10px; }
+        .whatsapp-btn { display: inline-block; margin-top: 8px; background: #25d366; color: white; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-weight: bold; font-size: 14px; }
 
-        /* Login Screen */
-        #loginScreen { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; gap: 15px; background: #efeae2; }
-        .google-btn { background: #fff; color: #333; border: 1px solid #ccc; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .google-btn:hover { background: #f9f9f9; }
-
-        /* Profile List */
-        #profileList { flex: 1; overflow-y: auto; display: none; }
-        .profile-card { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .profile-card:hover { background: #f5f5f5; }
-        .profile-img { width: 52px; height: 52px; border-radius: 50%; margin-right: 12px; object-fit: cover; background: #ddd; }
-        .profile-name { font-weight: bold; font-size: 16px; color: #222; }
-        .profile-sub { font-size: 12px; color: #128c7e; margin-top: 2px; }
-
-        /* Chat Screen */
-        #chatScreen { display: none; flex-direction: column; flex: 1; height: 100%; }
-        .chat-header { background: #075e54; color: white; padding: 12px 15px; display: flex; align-items: center; gap: 10px; }
-        .back-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        .chat-body { flex: 1; background: #efeae2; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 78%; padding: 10px 13px; border-radius: 10px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
-        .user-msg { background: #dcf8c6; align-self: flex-end; }
-        .ai-msg { background: #ffffff; align-self: flex-start; box-shadow: 0 1px 1px rgba(0,0,0,0.08); }
-
-        .chat-footer { padding: 10px; background: #f0f0f0; display: flex; gap: 8px; align-items: center; }
-        .chat-footer input { flex: 1; padding: 10px 14px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
-        .icon-btn { background: #128c7e; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 16px; }
-        .icon-btn.listening { background: #d93025; }
+        .chat-footer { padding: 10px; background: #f0f0f0; display: flex; gap: 5px; align-items: center; }
+        .chat-footer input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+        .send-btn, .mic-btn { background: #075e54; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+        .mic-btn.recording { background: #ff4757; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
 <div class="app-container">
-    <div class="header">
-        <span id="headerTitle">AI Chat Club</span>
-        <button class="logout-btn" id="logoutBtn" style="display:none;" onclick="logoutUser()">Logout</button>
-    </div>
-
-    <!-- Step 1: Google Login Screen -->
     <div id="loginScreen">
-        <h2>خوش آمدید!</h2>
-        <p style="font-size: 14px; color: #555;">چیٹ اور وائس ریپلائی شروع کرنے کے لیے اپنے گوگل اکاؤنٹ سے سائن ان کریں۔</p>
-        <button class="google-btn" onclick="loginWithGoogle()">G Continue with Google</button>
+        <h2 style="margin-bottom: 20px; color: #075e54;">AI Chat Club</h2>
+        <button class="google-btn" onclick="loginWithGoogle()">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.ico" alt="Google">
+            G Continue with Google
+        </button>
     </div>
 
-    <!-- Step 2: Profiles List -->
-    <div id="profileList">
-        <!-- Profiles will be dynamically loaded here -->
+    <div id="profileList" style="display: none;">
+        <div class="header">AI Chat Club <button class="logout-btn" onclick="logout()">Logout</button></div>
+        <!-- Profile Cards -->
+        <div class="profile-card" onclick="openChat('Ayesha', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', '+923001234567')">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150" class="profile-img" alt="Ayesha">
+            <div class="profile-info">
+                <div class="profile-name">عائشة (Ayesha)</div>
+                <div class="profile-status">WhatsApp Style Chat • Online</div>
+            </div>
+        </div>
+        <div class="profile-card" onclick="openChat('Sara', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', '+923007654321')">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" class="profile-img" alt="Sara">
+            <div class="profile-info">
+                <div class="profile-name">سارہ (Sara)</div>
+                <div class="profile-status">WhatsApp Style Chat • Online</div>
+            </div>
+        </div>
+        <div class="profile-card" onclick="openChat('Maria', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150', '+923001122334')">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150" class="profile-img" alt="Maria">
+            <div class="profile-info">
+                <div class="profile-name">ماریہ (Maria)</div>
+                <div class="profile-status">WhatsApp Style Chat • Online</div>
+            </div>
+        </div>
+        <div class="profile-card" onclick="openChat('Fatima', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150', '+923009988776')">
+            <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150" class="profile-img" alt="Fatima">
+            <div class="profile-info">
+                <div class="profile-name">فاطمه (Fatima)</div>
+                <div class="profile-status">WhatsApp Style Chat • Online</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Step 3: Chat Screen -->
     <div id="chatScreen">
         <div class="chat-header">
-            <button class="back-btn" onclick="backToProfiles()">←</button>
-            <span id="chatGirlName">Chat</span>
+            <button class="back-btn" onclick="closeChat()">←</button>
+            <span id="chatPersonaName" style="font-weight: bold;">Chat</span>
         </div>
+        
+        <div class="profile-big-container">
+            <img id="profileBigImg" src="" class="profile-big-img" alt="Profile">
+            <div id="profileBigName" style="font-weight: bold; font-size: 18px;"></div>
+            <a id="whatsappBtn" href="" class="whatsapp-btn" target="_blank">Chat on WhatsApp</a>
+        </div>
+
         <div class="chat-body" id="chatBody"></div>
+        
         <div class="chat-footer">
-            <input type="text" id="msgInput" placeholder="میسج لکھیں یا مائیک دبائیں..." onkeydown="if(event.key==='Enter') sendMessage()">
-            <button class="icon-btn" onclick="sendMessage()">➤</button>
-            <button class="icon-btn" id="micBtn" onclick="toggleMic()">🎤</button>
+            <input type="text" id="messageInput" placeholder="میسج لکھیں یا مائیک دبائیں...">
+            <button class="send-btn" onclick="sendMessage(false)">➤</button>
+            <button class="mic-btn" id="micBtn" onclick="toggleVoiceInput()">🎤</button>
         </div>
     </div>
 </div>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-
 <script>
-    // ** ایڈمن کنٹرول پینل: آپ یہاں سے تصویریں اور نام تبدیل کر سکتے ہیں **
-    const girlsProfiles = [
-        {
-            name: "عائشہ (Ayesha)",
-            persona: "شوخ اور پیار کرنے والی لڑکی",
-            image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
-        },
-        {
-            name: "سارہ (Sara)",
-            persona: "نرم دل اور خیال رکھنے والی لڑکی",
-            image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
-        },
-        {
-            name: "ماریہ (Maria)",
-            persona: "ہنس مکھ اور دوستانہ لڑکی",
-            image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150"
-        },
-        {
-            name: "فاطمہ (Fatima)",
-            persona: "معصوم اور محبت بھری باتیں کرنے والی لڑکی",
-            image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150"
-        }
-    ];
-
-    // 1. اپنی Firebase Config یہاں لگائیں
     const firebaseConfig = {
-        apiKey: "AIzaSyDPXN2Mug6gpnWgXbODS_yC9n5P7B0Q9X0",
-    authDomain: "ai-free-girls-chatting.firebaseapp.com",
-    projectId: "ai-free-girls-chatting",
-    storageBucket: "ai-free-girls-chatting.firebasestorage.app",
-    messagingSenderId: "110536817891",
-    appId: "1:110536817891:web:a1ec618d119336446519d6",
-    measurementId: "G-V69GPYTF2G"
+        apiKey: "AIzaSyDPXN2MUMg3_gx0pgwxbm6vbp2U-_gU1-U",
+        authDomain: "ai-free-girls-chatting.firebaseapp.com",
+        projectId: "ai-free-girls-chatting",
+        storageBucket: "ai-free-girls-chatting.appspot.com",
+        messagingSenderId: "110536817891",
+        appId: "1:110536817891:web:a1ec68d119336446519d6"
     };
-
-    // 2. اپنی Gemini API Key یہاں لگائیں
-    const GEMINI_API_KEY = "AQ.Ab8RN6IfUfrQDREASpW1ELsKwnIDc0z1tuEM9S6VRx0VgyjtCQ";
-
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
 
-    let currentGirl = "";
-    let currentPersona = "";
-    let recognition = null;
-    let isRecording = false;
+    let currentPersona = {};
+    let isListening = false;
+    let recognition;
 
-    // Load Profiles on Startup
-    document.addEventListener("DOMContentLoaded", () => {
-        const profileListContainer = document.getElementById("profileList");
-        profileListContainer.innerHTML = '';
-        
-        girlsProfiles.forEach(girl => {
-            const card = document.createElement("div");
-            card.className = "profile-card";
-            card.onclick = () => openChat(girl.name, girl.persona);
-            card.innerHTML = `
-                <img src="${girl.image}" class="profile-img" onerror="this.src='https://via.placeholder.com/150'">
-                <div>
-                    <div class="profile-name">${girl.name}</div>
-                    <div class="profile-sub">WhatsApp Style Chat • Online</div>
-                </div>
-            `;
-            profileListContainer.appendChild(card);
-        });
-    });
+    if ('webkitAudioContext' in window || 'AudioContext' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ur-PK';
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-    // Auth State Listener
-    auth.onAuthStateChanged((user) => {
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                document.getElementById('messageInput').value = text;
+                toggleVoiceInput();
+                sendMessage(true);
+            };
+
+            recognition.onerror = function() {
+                toggleVoiceInput();
+                alert("آواز سمجھ نہیں آئی، دوبارہ کوشش کریں۔");
+            };
+        }
+    }
+
+    firebase.auth().onAuthStateChanged(user => {
         if (user) {
-            document.getElementById("loginScreen").style.display = "none";
-            document.getElementById("logoutBtn").style.display = "inline-block";
-            if (document.getElementById("chatScreen").style.display !== "flex") {
-                document.getElementById("profileList").style.display = "block";
-            }
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('profileList').style.display = 'block';
         } else {
-            document.getElementById("loginScreen").style.display = "flex";
-            document.getElementById("profileList").style.display = "none";
-            document.getElementById("chatScreen").style.display = "none";
-            document.getElementById("logoutBtn").style.display = "none";
-            window.speechSynthesis.cancel();
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('profileList').style.display = 'none';
+            document.getElementById('chatScreen').style.display = 'none';
         }
     });
 
     function loginWithGoogle() {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch((err) => {
-            alert("لاگ ان میں مسئلہ آیا: " + err.message);
-        });
+        firebase.auth().signInWithPopup(provider).catch(error => alert(error.message));
     }
 
-    function logoutUser() {
-        auth.signOut();
+    function logout() {
+        firebase.auth().signOut();
     }
 
-    function openChat(name, persona) {
-        currentGirl = name;
-        currentPersona = persona;
-        document.getElementById("profileList").style.display = "none";
-        document.getElementById("chatScreen").style.display = "flex";
-        document.getElementById("chatGirlName").innerText = name;
-        document.getElementById("chatBody").innerHTML = "";
-
-        const greeting = `سلام جانو! میں ${name} ہوں۔ آپ کیسے ہو؟ ❤️`;
-        appendMessage(greeting, "ai");
-        speakReply(greeting);
+    function openChat(name, imgUrl, phone) {
+        currentPersona = { name, imgUrl, phone };
+        document.getElementById('profileList').style.display = 'none';
+        document.getElementById('chatScreen').style.display = 'flex';
+        document.getElementById('chatPersonaName').innerText = name;
+        document.getElementById('profileBigName').innerText = name;
+        document.getElementById('profileBigImg').src = imgUrl;
+        document.getElementById('whatsappBtn').href = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=Hi ${name}`;
+        document.getElementById('chatBody').innerHTML = '';
+        appendMessage('ai', `خوش آمدید! میں ${name} ہوں۔ آپ سے بات کر کے خوشی ہوئی۔`);
     }
 
-    function backToProfiles() {
-        window.speechSynthesis.cancel();
-        document.getElementById("chatScreen").style.display = "none";
-        document.getElementById("profileList").style.display = "block";
+    function closeChat() {
+        document.getElementById('chatScreen').style.display = 'none';
+        document.getElementById('profileList').style.display = 'block';
     }
 
-    function appendMessage(text, sender) {
-        const chatBody = document.getElementById("chatBody");
-        const div = document.createElement("div");
-        div.className = `message ${sender === "user" ? "user-msg" : "ai-msg"}`;
-        div.innerText = text;
-        chatBody.appendChild(div);
-        chatBody.scrollTop = chatBody.scrollHeight;
+    function toggleVoiceInput() {
+        const micBtn = document.getElementById('micBtn');
+        if (!recognition) {
+            alert("آپ کا براؤزر وائس ان پٹ سپورٹ نہیں کرتا۔");
+            return;
+        }
+        if (isListening) {
+            recognition.stop();
+            micBtn.classList.remove('recording');
+            isListening = false;
+        } else {
+            recognition.start();
+            micBtn.classList.add('recording');
+            isListening = true;
+        }
     }
 
-    async function sendMessage() {
-        const input = document.getElementById("msgInput");
+    function sendMessage(isVoice) {
+        const input = document.getElementById('messageInput');
         const text = input.value.trim();
         if (!text) return;
 
-        appendMessage(text, "user");
-        input.value = "";
+        appendMessage('user', text);
+        input.value = '';
 
-        const reply = await getAiReply(text);
-        appendMessage(reply, "ai");
-        speakReply(reply);
+        setTimeout(() => {
+            generateSmartReply(text, isVoice);
+        }, 1000);
     }
 
-    async function getAiReply(userMessage) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-        const prompt = `تمہارا نام ${currentGirl} ہے اور تم ${currentPersona} ہو۔ صارف سے انتہائی پیار، اپنائیت اور رومینٹک انداز میں بات کرو۔ ہر جواب میں صارف کو لازمی "جانو" کہہ کر مخاطب کرنا ہے۔ جواب مختصر (1 یا 2 جملے) اور قدرتی ہونا چاہیے ۔ صارف کا پیغام: ${userMessage}`;
+    function generateSmartReply(userText, isVoice) {
+        const msg = userText.toLowerCase();
+        let reply = "";
 
-        try {
-            const response = await fetch(endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            });
-            const data = await response.json();
-            return data?.candidates?.[0]?.content?.parts?.[0]?.text || "جانو، میں سن رہی ہوں، دوبارہ بولو نا؟ ❤️";
-        } catch (e) {
-            return "جانو، میرا انٹرنیٹ تھوڑا سلو چل رہا ہے، دوبارہ کہو نا؟ ❤️";
-        }
-    }
-
-    function speakReply(text) {
-        if (!("speechSynthesis" in window)) return;
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.lang = "ur-PK";
-        utter.pitch = 1.25;
-        utter.rate = 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const female = voices.find(v => /female|woman|zira|samantha|google/i.test(v.name));
-        if (female) utter.voice = female;
-
-        window.speechSynthesis.speak(utter);
-    }
-
-    // Pre-load voices
-    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
-
-    // Voice Input
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRec) {
-        recognition = new SpeechRec();
-        recognition.lang = "ur-PK";
-        recognition.interimResults = false;
-
-        recognition.onresult = (event) => {
-            const spokenText = event.results[0][0].transcript;
-            document.getElementById("msgInput").value = spokenText;
-            sendMessage();
-        };
-
-        recognition.onend = () => {
-            isRecording = false;
-            document.getElementById("micBtn").classList.remove("listening");
-        };
-    }
-
-    function toggleMic() {
-        if (!recognition) {
-            alert("اس براؤزر میں مائیک سپورٹ نہیں ہے۔ Chrome استعمال کریں۔");
-            return;
-        }
-        if (isRecording) {
-            recognition.stop();
+        if (msg.includes("کہاں سے") || msg.includes("kahan se") || msg.includes("city") || msg.includes("rehan")) {
+            reply = `جانو میں لاہور سے ہوں ❤️ اور موسم بہت پیارا ہے۔`;
+        } else if (msg.includes("طبیعت") || msg.includes("حال") || msg.includes("کیسی ہو") || msg.includes("kaisi ho")) {
+            reply = `جانو میں بالکل ٹھیک ٹھاک ہوں، آپ کی دعائیں ہیں۔ آپ سناؤ آپ کیسے ہو؟ 😊`;
+        } else if (msg.includes("نام") || msg.includes("naam") || msg.includes("what is your name")) {
+            reply = `میرا نام ${currentPersona.name} ہے جانو۔`;
+        } else if (msg.includes("کیا کر") || msg.includes("kya kar") || msg.includes("busy")) {
+            reply = `بس جانو آپ کے بارے میں سوچ رہی تھی اور آپ کا ہی انتظار کر رہی تھی۔`;
+        } else if (msg.includes("love") || msg.includes("love you") || msg.includes("pyar")) {
+            reply = `I love you too janu! 🥰 آپ میرے لیے بہت سپیشل ہو۔`;
         } else {
-            recognition.start();
-            isRecording = true;
-            document.getElementById("micBtn").classList.add("listening");
+            const defaults = [
+                `جانو آپ کی بات بہت پیاری لگی، اور سناؤ؟`,
+                `ہممم، بالکل صحیح کہہ رہے ہو آپ۔`,
+                `جی جانو، میں آپ کی بات غور سے سن رہی ہوں۔`,
+                `کیا واقعی؟ مجھے تو یقین نہیں آ رہا! 😄`
+            ];
+            reply = defaults[Math.floor(Math.random() * defaults.length)];
+        }
+
+        appendMessage('ai', reply);
+
+        if (isVoice) {
+            speakText(reply);
+        }
+    }
+
+    function appendMessage(sender, text) {
+        const chatBody = document.getElementById('chatBody');
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message', `${sender}-msg`);
+        msgDiv.innerText = text;
+        chatBody.appendChild(msgDiv);
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ur-PK';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.2;
+            window.speechSynthesis.speak(utterance);
         }
     }
 </script>
